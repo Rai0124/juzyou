@@ -11,6 +11,7 @@ public:
     ~Car() {
         std::cout << "Car のデストラクタが処理されました" << std::endl;
     }
+    virtual void carry() = 0;
 };
 
 // タンクローリークラス
@@ -29,6 +30,9 @@ public:
 
 int main()
 {
+    Car* p = new Car();
+    Car c;
+
     Tank* tank = new Tank;
     // Tank のアドレスを Car ポインタで受け取る事が出来る
     Car* car = tank;
@@ -36,5 +40,7 @@ int main()
     // Car の carry() が呼び出される
     car->carry();
     // Car に 宣言されていないのでコンパイルエラー
-    car->pumpOut();
+    //car->pumpOut();
+
+    delete car;
 };

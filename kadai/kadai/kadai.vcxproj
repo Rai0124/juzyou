@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{a947f294-7a39-4c86-aadc-f1e145750124}</ProjectGuid>
-    <RootNamespace>ConsoleApplication12</RootNamespace>
+    <ProjectGuid>{bf678156-26f6-4b27-9d28-feac6a498e12}</ProjectGuid>
+    <RootNamespace>kadai</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -123,11 +123,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="FileName.cpp" />
-    <ClCompile Include="Tank.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Tank.h" />
+    <ClCompile Include="kadai.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
