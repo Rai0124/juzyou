@@ -40,4 +40,5 @@ int main()
 		std::cout << sum2 << ":" << d << std::endl;
 	}
 
+
 }
