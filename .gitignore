@@ -1,3 +1,11 @@
 *.user
 x64/
 .vs/
+/kadai1/Assets
+/kadai1/Library
+/kadai1/Logs
+/kadai1/Packages
+/kadai1/ProjectSettings
+/kadai1/UserSettings
+/kadai1
+/Kadai2
