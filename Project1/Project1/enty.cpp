@@ -271,6 +271,97 @@ int WINAPI WinMain(
 	ID3D12CommandQueue* commandQueue = CreateCommandQueue(device);              // 5. コマンドキュー
 	IDXGISwapChain3* swapChain = CreateSwapChain(factory, commandQueue, hwnd);  // 6. スワップチェーン
 
+	// グローバル変数宣言のみ
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
+
+	// 初期化と設定
+	rtvHeapDesc.NumDescriptors = 2; // ダブルバッファリング
+	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // レンダーターゲットビュー用
+	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // 特別なフラグなし
+
+	ID3D12DescriptorHeap* rtvHeap = nullptr;
+	device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap));
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+	UINT rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+	rtvHandle.ptr += rtvDescriptorSize;
+
+	ID3D12Resource* renderTargets[2];  // スワップチェーンでバッファが二つあるのでダブルバッファで
+
+	for (int i = 0; i < 2; i++)
+	{
+		// スワップチェーンからバッファを取得
+		swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
+
+		// RTVハンドルの計算
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		rtvHandle.ptr += i * rtvDescriptorSize;
+
+		// RTVの作成
+		device->CreateRenderTargetView(renderTargets[i], nullptr, rtvHandle);
+	}
+
+	ID3D12CommandAllocator* commandAllocators[2];
+
+	for (int i = 0; i < 2; i++)
+	{
+		device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocators[i]));
+	}
+
+
+	// コマンドリスト作成例
+	ID3D12GraphicsCommandList* commandList;
+	device->CreateCommandList(
+		0,
+		D3D12_COMMAND_LIST_TYPE_DIRECT,
+		commandAllocators[0],  // 作成時は先頭のアロケータを指定
+		nullptr,
+		IID_PPV_ARGS(&commandList)
+	);
+
+	// 初期状態でクローズしておく
+	commandList->Close();
+
+
+	// 現在のバックバッファインデックスを取得
+	UINT currentBackBuffer = swapChain->GetCurrentBackBufferIndex();
+
+	// ※ アロケータのリセット前に、このアロケータを使ったコマンドの
+	//    GPU 実行完了をフェンスで待機しておくこと（後述）
+	// コマンドアロケータとコマンドリストをリセット
+	commandAllocators[currentBackBuffer]->Reset();
+	commandList->Reset(commandAllocators[currentBackBuffer], nullptr);
+
+	// レンダーターゲットを「絵を描く状態」に変更する（リソースバリア）
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Transition.pResource = renderTargets[currentBackBuffer];
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	commandList->ResourceBarrier(1, &barrier);
+
+	// レンダーターゲットの取得
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+	rtvHandle.ptr += currentBackBuffer * rtvDescriptorSize;
+
+	// 画面クリア（青色）
+	float clearColor[] = { 0.0f, 0.0f, 1.0f, 1.0f }; 
+	commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+
+	// レンダーターゲットを「絵を出す状態」に変更する（リソースバリア）
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+	commandList->ResourceBarrier(1, &barrier);
+
+	// コマンドリストをクローズ
+	commandList->Close();
+
+
+	// 「画面をクリアする」コマンドリストを実行 → GPU が記録内容の実行を開始する
+	commandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&commandList);
+
+
 	swapChain->Release();
 	commandQueue->Release();
 	device->Release();
